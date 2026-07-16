@@ -306,6 +306,11 @@ export type Database = {
         | "Maisonette"
         | "Townhouse"
         | "Other"
+        | "Single Room"
+        | "Double Room"
+        | "Shop"
+        | "Warehouse"
+        | "Commercial Space"
       viewing_status:
         | "pending"
         | "confirmed"
@@ -450,6 +455,11 @@ export const Constants = {
         "Maisonette",
         "Townhouse",
         "Other",
+        "Single Room",
+        "Double Room",
+        "Shop",
+        "Warehouse",
+        "Commercial Space",
       ],
       viewing_status: [
         "pending",

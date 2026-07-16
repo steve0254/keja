@@ -111,7 +111,7 @@ export function adaptListing(row: DbListing, idx = 0): Listing {
   };
 }
 
-export const chipTypes = ["All", "Bedsitter", "Studio", "1 Bed", "2 Bed", "Maisonette", "Own compound"];
+export const chipTypes = ["All", "Single Room", "Double Room", "Bedsitter", "Studio", "1 Bed", "2 Bed", "Maisonette", "Shop", "Own compound"];
 export const trendingHoods = [
   { name: "Kilimani", count: 128 },
   { name: "Riverside", count: 74 },

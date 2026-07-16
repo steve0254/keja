@@ -23,7 +23,7 @@ const amenities = [
 
 function SearchPage() {
   const [q, setQ] = useState("");
-  const [budget, setBudget] = useState(200000);
+  const [budget, setBudget] = useState(500000);
   const [bed, setBed] = useState("Any");
   const [active, setActive] = useState<string[]>([]);
   const { data: listings = [], isLoading } = useListings();
@@ -66,7 +66,7 @@ function SearchPage() {
             <span className="text-sm font-semibold">Up to {formatKes(budget)}</span>
           </div>
           <input
-            type="range" min={5000} max={200000} step={1000} value={budget}
+            type="range" min={2000} max={500000} step={1000} value={budget}
             onChange={(e) => setBudget(Number(e.target.value))}
             className="w-full accent-[oklch(0.599_0.174_142.1)]"
           />

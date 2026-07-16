@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin, Check } from "lucide-react";
+import { ArrowLeft, MapPin, Check, X, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -10,8 +10,11 @@ export const Route = createFileRoute("/add")({
   component: AddVacancy,
 });
 
-const houseTypes = ["Studio", "Bedsitter", "One Bedroom", "Two Bedroom", "Three Bedroom", "Maisonette", "Townhouse", "Other"] as const;
+const residentialTypes = ["Single Room", "Double Room", "Bedsitter", "Studio", "One Bedroom", "Two Bedroom", "Three Bedroom", "Maisonette", "Townhouse"] as const;
+const commercialTypes = ["Shop", "Warehouse", "Commercial Space"] as const;
+const houseTypes = [...residentialTypes, ...commercialTypes, "Other"] as const;
 const amenityOptions = ["Wi-Fi", "Water", "Parking", "Furnished", "Pets", "Own compound"];
+const MAX_PHOTOS = 8;
 
 function AddVacancy() {
   const navigate = useNavigate();
@@ -27,6 +30,8 @@ function AddVacancy() {
   const [bathrooms, setBathrooms] = useState(1);
   const [description, setDescription] = useState("");
   const [amenities, setAmenities] = useState<string[]>(["Water"]);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [caretakerName, setCaretakerName] = useState("");
   const [caretakerPhone, setCaretakerPhone] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -58,6 +63,58 @@ function AddVacancy() {
     );
   }
 
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const incoming = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    setPhotos((prev) => {
+      const room = MAX_PHOTOS - prev.length;
+      if (room <= 0) {
+        toast.error(`You can add up to ${MAX_PHOTOS} photos`);
+        return prev;
+      }
+      const next = incoming.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }));
+      if (incoming.length > room) toast.error(`Only added ${room} more — max ${MAX_PHOTOS} photos`);
+      return [...prev, ...next];
+    });
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function uploadPhotos(): Promise<string[]> {
+    if (!user || photos.length === 0) return [];
+    setUploadingPhotos(true);
+    try {
+      const urls: string[] = [];
+      for (const { file } of photos) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from("listing-images").upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (error) throw error;
+        const { data } = supabase.storage.from("listing-images").getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+      return urls;
+    } finally {
+      setUploadingPhotos(false);
+    }
+  }
+
   async function publish() {
     if (!user) return;
     if (!title || !neighborhood || !rent) {
@@ -65,13 +122,21 @@ function AddVacancy() {
       return;
     }
     setSubmitting(true);
+    let imageUrls: string[] = [];
+    try {
+      imageUrls = await uploadPhotos();
+    } catch (err) {
+      setSubmitting(false);
+      toast.error(err instanceof Error ? err.message : "Photo upload failed");
+      return;
+    }
     const { data, error } = await supabase.from("listings").insert({
       owner_id: user.id,
       title, neighborhood, address: address || null,
       type, rent: Number(rent), deposit: Number(deposit || rent),
       bedrooms, bathrooms,
       description: description || null,
-      amenities, images: [],
+      amenities, images: imageUrls,
       status: "available",
       lat: coords?.lat ?? null, lng: coords?.lng ?? null,
       caretaker_name: caretakerName || null,
@@ -179,13 +244,36 @@ function AddVacancy() {
               <h1 className="text-2xl font-semibold tracking-tight">What kind of home?</h1>
               <p className="mt-1 text-sm text-muted-foreground">You can add more units later.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {houseTypes.map((t) => (
-                <button key={t} onClick={() => setType(t)}
-                  className={`press rounded-2xl border p-4 text-left text-sm font-medium ${
-                    type === t ? "border-primary bg-primary/5 text-primary" : "border-border bg-card"
-                  }`}>{t}</button>
-              ))}
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Residential</span>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {residentialTypes.map((t) => (
+                  <button key={t} onClick={() => setType(t)}
+                    className={`press rounded-2xl border p-4 text-left text-sm font-medium ${
+                      type === t ? "border-primary bg-primary/5 text-primary" : "border-border bg-card"
+                    }`}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Commercial</span>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {commercialTypes.map((t) => (
+                  <button key={t} onClick={() => setType(t)}
+                    className={`press rounded-2xl border p-4 text-left text-sm font-medium ${
+                      type === t ? "border-primary bg-primary/5 text-primary" : "border-border bg-card"
+                    }`}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Other</span>
+              <div className="mt-2">
+                <button onClick={() => setType("Other")}
+                  className={`press w-full rounded-2xl border p-4 text-left text-sm font-medium ${
+                    type === "Other" ? "border-primary bg-primary/5 text-primary" : "border-border bg-card"
+                  }`}>Other</button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
@@ -214,6 +302,37 @@ function AddVacancy() {
                 placeholder="Sunlit studio, Riverside"
                 className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-sm" />
             </label>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Photos ({photos.length}/{MAX_PHOTOS})
+              </span>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {photos.map((p, i) => (
+                  <div key={p.preview} className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
+                    <img src={p.preview} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      aria-label="Remove photo"
+                      className="press absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-foreground/70 text-background"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {photos.length < MAX_PHOTOS && (
+                  <label className="press flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-card text-muted-foreground">
+                    <ImagePlus className="h-5 w-5" />
+                    <span className="text-[11px] font-medium">Add photo</span>
+                    <input
+                      type="file" accept="image/*" multiple className="hidden"
+                      onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }}
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">First photo becomes the cover image.</p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Rent (KSh)</span>
@@ -270,7 +389,7 @@ function AddVacancy() {
           ) : (
             <button onClick={publish} disabled={submitting}
               className="press flex-1 rounded-2xl bg-primary py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-pop disabled:opacity-60">
-              {submitting ? "Publishing…" : "Publish vacancy"}
+              {uploadingPhotos ? "Uploading photos…" : submitting ? "Publishing…" : "Publish vacancy"}
             </button>
           )}
         </div>

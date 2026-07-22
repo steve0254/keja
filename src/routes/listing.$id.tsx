@@ -5,6 +5,7 @@ import {
   Home as HomeIcon, ShieldCheck, MessageCircle, X, CalendarDays,
 } from "lucide-react";
 import { statusMeta, formatKes } from "@/lib/listings";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useListing } from "@/hooks/use-listings";
 import { useAuth } from "@/hooks/use-auth";
 import { startConversation } from "@/hooks/use-messaging";
@@ -35,7 +36,7 @@ function ListingDetail() {
   const [starting, setStarting] = useState(false);
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+    return <LoadingScreen />;
   }
   if (!listing) {
     return (

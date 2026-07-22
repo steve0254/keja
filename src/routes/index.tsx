@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search, Sparkles, Bell, SlidersHorizontal, MapPin, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ListingCard } from "@/components/ListingCard";
+import { ListingCardSkeleton } from "@/components/LoadingScreen";
 import { chipTypes, trendingHoods } from "@/lib/listings";
 import { useListings } from "@/hooks/use-listings";
 import { useAuth } from "@/hooks/use-auth";
@@ -100,7 +101,11 @@ function Home() {
           <Link to="/search" className="text-xs font-medium text-primary">See all</Link>
         </div>
         {isLoading ? (
-          <div className="px-5 text-xs text-muted-foreground">Loading…</div>
+          <div className="flex gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <ListingCardSkeleton />
+            <ListingCardSkeleton />
+            <ListingCardSkeleton />
+          </div>
         ) : listings.length === 0 ? (
           <EmptyState />
         ) : (

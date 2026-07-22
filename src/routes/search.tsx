@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Search as SearchIcon, X, Wifi, Droplet, Car, PawPrint, Sofa, Home as HomeIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ListingCard } from "@/components/ListingCard";
+import { AiSearchChat } from "@/components/AiSearchChat";
+import { ListingCardSkeleton } from "@/components/LoadingScreen";
 import { formatKes } from "@/lib/listings";
 import { useListings } from "@/hooks/use-listings";
 
@@ -60,6 +62,8 @@ function SearchPage() {
       </header>
 
       <div className="animate-fade-up space-y-6 px-5 pt-4">
+        <AiSearchChat listings={listings} />
+
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Budget</label>
@@ -116,13 +120,23 @@ function SearchPage() {
             <span className="text-xs text-muted-foreground">Live</span>
           </div>
           <div className="space-y-4">
-            {results.map((l) => (
-              <ListingCard key={l.id} listing={l} variant="wide" />
-            ))}
-            {!isLoading && results.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                No matches yet — try widening your filters.
-              </div>
+            {isLoading ? (
+              <>
+                <ListingCardSkeleton variant="wide" />
+                <ListingCardSkeleton variant="wide" />
+                <ListingCardSkeleton variant="wide" />
+              </>
+            ) : (
+              <>
+                {results.map((l) => (
+                  <ListingCard key={l.id} listing={l} variant="wide" />
+                ))}
+                {results.length === 0 && (
+                  <div className="rounded-3xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    No matches yet — try widening your filters.
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

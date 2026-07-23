@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, X, ArrowUp, Bot } from "lucide-react";
-import { ListingCard } from "@/components/ListingCard";
-import { aiSearchChat, type AiChatMessage } from "@/lib/ai-search";
+import { useAI } from "@/hooks/useAI";
+import { MessageBubble } from "@/components/assistant/MessageBubble";
+import { ListingResultsStrip } from "@/components/assistant/ListingResultsStrip";
 import type { Listing } from "@/lib/listings";
-
-type ChatEntry = AiChatMessage & { id: string; listingIds?: string[]; isError?: boolean };
 
 const SUGGESTIONS = [
   "Bedsitter under KSh 15,000 in Kilimani",
@@ -14,52 +11,23 @@ const SUGGESTIONS = [
   "Pet-friendly studio, own compound",
 ];
 
-function newId() {
-  return Math.random().toString(36).slice(2);
-}
-
 export function AiSearchChat({ listings }: { listings: Listing[] }) {
   const [open, setOpen] = useState(false);
-  const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const callAiSearchChat = useServerFn(aiSearchChat);
+  const { entries, isStreaming, send } = useAI("tenant");
 
-  const mutation = useMutation({
-    mutationFn: (history: ChatEntry[]) =>
-      callAiSearchChat({ data: { messages: history.map(({ role, content }) => ({ role, content })) } }),
-  });
+  const lastEntry = entries[entries.length - 1];
+  const lastContent = lastEntry?.content;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [entries.length, mutation.isPending]);
+  }, [entries.length, lastContent]);
 
-  function send(text: string) {
-    const clean = text.trim();
-    if (!clean || mutation.isPending) return;
-    const userEntry: ChatEntry = { id: newId(), role: "user", content: clean };
-    const nextHistory = [...entries, userEntry];
-    setEntries(nextHistory);
+  function submit(text: string) {
+    if (!text.trim() || isStreaming) return;
+    send(text);
     setInput("");
-    mutation.mutate(nextHistory, {
-      onSuccess: (result) => {
-        setEntries((prev) => [
-          ...prev,
-          { id: newId(), role: "assistant", content: result.reply, listingIds: result.listingIds },
-        ]);
-      },
-      onError: (err) => {
-        setEntries((prev) => [
-          ...prev,
-          {
-            id: newId(),
-            role: "assistant",
-            content: err instanceof Error ? err.message : "Something went wrong — try again.",
-            isError: true,
-          },
-        ]);
-      },
-    });
   }
 
   return (
@@ -74,7 +42,9 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-foreground">Ask Keja AI</span>
-          <span className="block truncate text-xs text-muted-foreground">Describe your dream home in plain English</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            Describe your dream home in plain English
+          </span>
         </span>
       </button>
 
@@ -87,7 +57,9 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Keja AI</p>
-                <p className="truncate text-[11px] text-muted-foreground">House-hunting assistant</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  House-hunting assistant
+                </p>
               </div>
               <button
                 type="button"
@@ -107,7 +79,8 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
                       <Bot className="h-4 w-4" />
                     </span>
                     <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-card px-4 py-2.5 text-sm shadow-soft">
-                      Hi! Tell me your budget, area, and what you need — I'll match you with real vacancies.
+                      Hi! Tell me your budget, area, and what you need — I'll search real vacancies
+                      for you.
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 pl-10">
@@ -115,7 +88,7 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
                       <button
                         key={s}
                         type="button"
-                        onClick={() => send(s)}
+                        onClick={() => submit(s)}
                         className="press rounded-2xl border border-border bg-card px-3 py-2 text-xs font-medium text-foreground"
                       >
                         {s}
@@ -125,59 +98,25 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
                 </div>
               )}
 
-              {entries.map((entry) => {
-                const mine = entry.role === "user";
-                const matched = entry.listingIds
-                  ?.map((id) => listings.find((l) => l.id === id))
-                  .filter((l): l is Listing => Boolean(l));
-                return (
-                  <div key={entry.id} className={`flex flex-col gap-2 ${mine ? "items-end" : "items-start"}`}>
-                    <div className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
-                      {!mine && (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                          <Bot className="h-4 w-4" />
-                        </span>
-                      )}
-                      <div
-                        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm shadow-soft ${
-                          mine
-                            ? "rounded-tr-sm bg-primary text-primary-foreground"
-                            : `rounded-tl-sm bg-card ${entry.isError ? "text-destructive" : ""}`
-                        }`}
-                      >
-                        {entry.content}
-                      </div>
-                    </div>
-                    {matched && matched.length > 0 && (
-                      <div className="flex w-full gap-3 overflow-x-auto pb-1 pl-10">
-                        {matched.map((l) => (
-                          <ListingCard key={l.id} listing={l} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {mutation.isPending && (
-                <div className="flex gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Bot className="h-4 w-4" />
-                  </span>
-                  <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-card px-4 py-3 shadow-soft">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
-                  </div>
+              {entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`flex flex-col gap-2 ${entry.role === "user" ? "items-end" : "items-start"}`}
+                >
+                  <MessageBubble entry={entry} />
+                  {entry.listingIds && (
+                    <ListingResultsStrip ids={entry.listingIds} listings={listings} />
+                  )}
                 </div>
-              )}
+              ))}
+
               <div ref={bottomRef} />
             </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                send(input);
+                submit(input);
               }}
               className="glass flex items-center gap-2 border-t border-border px-4 py-3"
               style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
@@ -190,7 +129,7 @@ export function AiSearchChat({ listings }: { listings: Listing[] }) {
               />
               <button
                 type="submit"
-                disabled={mutation.isPending || !input.trim()}
+                disabled={isStreaming || !input.trim()}
                 className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-pop disabled:opacity-50"
               >
                 <ArrowUp className="h-4 w-4" />

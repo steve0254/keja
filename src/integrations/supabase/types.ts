@@ -293,6 +293,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_ai_rate_limit: {
+        Args: {
+          p_client_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "tenant" | "landlord" | "agency" | "admin"

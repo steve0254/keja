@@ -4,15 +4,13 @@ export function LoadingScreen({ isVisible = true }: { isVisible?: boolean }) {
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-green-600 to-green-700 flex flex-col items-center justify-center z-50">
-      {/* Logo placeholder */}
-      <div className="mb-4 w-16 h-16 bg-white rounded-3xl flex items-center justify-center">
-        <span className="text-2xl font-bold text-green-600">K</span>
-      </div>
+    <div className="fixed inset-0 bg-green-600 flex flex-col items-center justify-center z-50">
+      {/* Logo */}
+      <img src="/logo-icon.png" alt="Keja" className="w-20 h-20 mb-6" />
       
       {/* App name */}
       <h1 className="text-5xl font-semibold text-white tracking-tight">keja</h1>
-      <p className="text-white/60 text-sm mt-2">Find a home, live</p>
+      <p className="text-white/70 text-sm mt-2 font-light">Find a home, live</p>
     </div>
   )
 }

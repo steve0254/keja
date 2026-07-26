@@ -28,3 +28,4 @@ git commit -m "Widen rent range, add photo uploads, add room/commercial types"
 git push
 ```
 Cloudflare will auto-build and deploy from the push.
+# trigger rebuild

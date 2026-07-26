@@ -96,6 +96,11 @@ function extractCandidateParts(payload: unknown): GeminiPart[] {
 export const geminiProvider: ChatProvider = {
   id: "gemini",
 
+  // Thinking is disabled (thinkingBudget: 0) below. Gemini's thinking models
+  // require echoing an opaque "thought signature" back on every function call
+  // replayed in conversation history — real plumbing we don't need for
+  // straightforward tool-routing calls like these, and it's faster/cheaper
+  // with thinking off anyway.
   async complete({
     system,
     turns,
@@ -110,7 +115,11 @@ export const geminiProvider: ChatProvider = {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: turnsToContents(turns),
-        generationConfig: { temperature: temperature ?? 0.4, maxOutputTokens: maxTokens ?? 700 },
+        generationConfig: {
+          temperature: temperature ?? 0.4,
+          maxOutputTokens: maxTokens ?? 700,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
         ...(tools.length > 0
           ? {
               tools: [
@@ -159,7 +168,11 @@ export const geminiProvider: ChatProvider = {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: turnsToContents(turns),
-        generationConfig: { temperature: temperature ?? 0.5, maxOutputTokens: maxTokens ?? 700 },
+        generationConfig: {
+          temperature: temperature ?? 0.5,
+          maxOutputTokens: maxTokens ?? 700,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       }),
     });
 

@@ -104,7 +104,7 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: ProviderCallParams): Promise<CompletionResult> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
     const response = await fetch(`${BASE_URL}/${model}:generateContent`, {
       method: "POST",
       headers: apiKeyHeader(),
@@ -153,7 +153,7 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: StreamParams): AsyncGenerator<string> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
     const response = await fetch(`${BASE_URL}/${model}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: apiKeyHeader(),

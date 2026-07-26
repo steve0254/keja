@@ -171,6 +171,7 @@ export const assistantChat = createServerFn({ method: "POST" })
             send({ type: "listings", ids: [...collectedListingIds] });
           send({ type: "done" });
         } catch (err) {
+          console.error("[assistant] request failed:", err instanceof Error ? err.message : err);
           const message =
             err instanceof AiProviderError
               ? err.userMessage

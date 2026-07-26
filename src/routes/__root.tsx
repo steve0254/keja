@@ -98,8 +98,51 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{ __html: "window.__splashStart = Date.now();" }}
+        />
       </head>
       <body>
+        <div
+          id="app-splash"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "#16a34a",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <img
+            src="/logo-icon.png"
+            alt="Keja"
+            style={{ width: 80, height: 80, marginBottom: 24 }}
+          />
+          <h1
+            style={{
+              fontSize: 48,
+              fontWeight: 600,
+              color: "white",
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            keja
+          </h1>
+          <p
+            style={{
+              color: "rgba(255,255,255,0.7)",
+              fontSize: 14,
+              marginTop: 8,
+              fontWeight: 300,
+            }}
+          >
+            Find a home, live
+          </p>
+        </div>
         {children}
         <Scripts />
       </body>
@@ -109,6 +152,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const splash = document.getElementById("app-splash");
+    if (!splash) return;
+
+    const minDisplayMs = 400;
+    const start = (window as unknown as { __splashStart?: number }).__splashStart ?? Date.now();
+    const remaining = Math.max(0, minDisplayMs - (Date.now() - start));
+
+    const timer = setTimeout(() => {
+      splash.style.transition = "opacity 200ms ease";
+      splash.style.opacity = "0";
+      setTimeout(() => splash.remove(), 200);
+    }, remaining);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

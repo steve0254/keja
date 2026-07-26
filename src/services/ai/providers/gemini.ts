@@ -16,7 +16,7 @@ type GeminiPart =
   | { functionCall: { name: string; args: Record<string, unknown> } }
   | { functionResponse: { name: string; response: Record<string, unknown> } };
 
-type GeminiContent = { role: "user" | "model" | "function"; parts: GeminiPart[] };
+type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
 
 function turnsToContents(turns: ConversationTurn[]): GeminiContent[] {
   const contents: GeminiContent[] = [];
@@ -36,19 +36,18 @@ function turnsToContents(turns: ConversationTurn[]): GeminiContent[] {
           })),
         });
         break;
-      case "tool_result":
-        contents.push({
-          role: "function",
-          parts: [
-            {
-              functionResponse: {
-                name: turn.name,
-                response: { content: turn.content ?? null },
-              },
-            },
-          ],
-        });
+      case "tool_result": {
+        const part: GeminiPart = {
+          functionResponse: { name: turn.name, response: { content: turn.content ?? null } },
+        };
+        const last = contents[contents.length - 1];
+        if (last && last.role === "user" && "functionResponse" in last.parts[0]) {
+          last.parts.push(part);
+        } else {
+          contents.push({ role: "user", parts: [part] });
+        }
         break;
+      }
     }
   }
   return contents;

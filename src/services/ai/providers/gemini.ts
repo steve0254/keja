@@ -16,7 +16,7 @@ type GeminiPart =
   | { functionCall: { name: string; args: Record<string, unknown> } }
   | { functionResponse: { name: string; response: Record<string, unknown> } };
 
-type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+type GeminiContent = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 
 function turnsToContents(turns: ConversationTurn[]): GeminiContent[] {
   const contents: GeminiContent[] = [];
@@ -36,18 +36,19 @@ function turnsToContents(turns: ConversationTurn[]): GeminiContent[] {
           })),
         });
         break;
-      case "tool_result": {
-        const part: GeminiPart = {
-          functionResponse: { name: turn.name, response: { content: turn.content ?? null } },
-        };
-        const last = contents[contents.length - 1];
-        if (last && last.role === "user" && "functionResponse" in last.parts[0]) {
-          last.parts.push(part);
-        } else {
-          contents.push({ role: "user", parts: [part] });
-        }
+      case "tool_result":
+        contents.push({
+          role: "function",
+          parts: [
+            {
+              functionResponse: {
+                name: turn.name,
+                response: { content: turn.content ?? null },
+              },
+            },
+          ],
+        });
         break;
-      }
     }
   }
   return contents;
@@ -96,12 +97,6 @@ function extractCandidateParts(payload: unknown): GeminiPart[] {
 export const geminiProvider: ChatProvider = {
   id: "gemini",
 
-  // Pinned to gemini-2.5-flash-lite, which doesn't think by default. Gemini's
-  // thinking models require echoing an opaque "thought signature" back on every
-  // function call replayed in conversation history — real plumbing we don't
-  // need for straightforward tool-routing calls like these, and picking a
-  // non-thinking model sidesteps it (and the moving-target behavior of
-  // "-latest" aliases across model generations) entirely.
   async complete({
     system,
     turns,
@@ -109,7 +104,7 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: ProviderCallParams): Promise<CompletionResult> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash-lite";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
     const response = await fetch(`${BASE_URL}/${model}:generateContent`, {
       method: "POST",
       headers: apiKeyHeader(),
@@ -158,7 +153,7 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: StreamParams): AsyncGenerator<string> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash-lite";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
     const response = await fetch(`${BASE_URL}/${model}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: apiKeyHeader(),

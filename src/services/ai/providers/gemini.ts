@@ -96,11 +96,12 @@ function extractCandidateParts(payload: unknown): GeminiPart[] {
 export const geminiProvider: ChatProvider = {
   id: "gemini",
 
-  // Thinking is disabled (thinkingBudget: 0) below. Gemini's thinking models
-  // require echoing an opaque "thought signature" back on every function call
-  // replayed in conversation history — real plumbing we don't need for
-  // straightforward tool-routing calls like these, and it's faster/cheaper
-  // with thinking off anyway.
+  // Pinned to gemini-2.5-flash-lite, which doesn't think by default. Gemini's
+  // thinking models require echoing an opaque "thought signature" back on every
+  // function call replayed in conversation history — real plumbing we don't
+  // need for straightforward tool-routing calls like these, and picking a
+  // non-thinking model sidesteps it (and the moving-target behavior of
+  // "-latest" aliases across model generations) entirely.
   async complete({
     system,
     turns,
@@ -108,18 +109,14 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: ProviderCallParams): Promise<CompletionResult> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash-lite";
     const response = await fetch(`${BASE_URL}/${model}:generateContent`, {
       method: "POST",
       headers: apiKeyHeader(),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: turnsToContents(turns),
-        generationConfig: {
-          temperature: temperature ?? 0.4,
-          maxOutputTokens: maxTokens ?? 700,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
+        generationConfig: { temperature: temperature ?? 0.4, maxOutputTokens: maxTokens ?? 700 },
         ...(tools.length > 0
           ? {
               tools: [
@@ -161,18 +158,14 @@ export const geminiProvider: ChatProvider = {
     temperature,
     maxTokens,
   }: StreamParams): AsyncGenerator<string> {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-flash-latest";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash-lite";
     const response = await fetch(`${BASE_URL}/${model}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: apiKeyHeader(),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: turnsToContents(turns),
-        generationConfig: {
-          temperature: temperature ?? 0.5,
-          maxOutputTokens: maxTokens ?? 700,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
+        generationConfig: { temperature: temperature ?? 0.5, maxOutputTokens: maxTokens ?? 700 },
       }),
     });
 

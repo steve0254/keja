@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Locate, Layers, Navigation as NavIcon, ChevronUp } from "lucide-react";
+import { Locate, Layers, Navigation as NavIcon, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { statusMeta, formatKes, type Listing } from "@/lib/listings";
 import { useListings } from "@/hooks/use-listings";
+import type { TileStyle } from "@/components/LiveMap";
 
 export const Route = createFileRoute("/map")({
   head: () => ({ meta: [{ title: "Live map — Keja" }] }),
@@ -23,6 +24,7 @@ function MapPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [tileStyle, setTileStyle] = useState<TileStyle>("standard");
 
   useEffect(() => setMounted(true), []);
 
@@ -76,6 +78,7 @@ function MapPage() {
                 onSelect={setSelected}
                 userLocation={userLocation}
                 flyTarget={flyTarget}
+                tileStyle={tileStyle}
               />
             </Suspense>
           )}
@@ -83,11 +86,17 @@ function MapPage() {
 
         <div className="glass pointer-events-auto absolute left-4 right-4 top-6 z-[500] flex items-center justify-between rounded-2xl px-4 py-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Live map</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Live map
+            </p>
             <p className="text-sm font-semibold">{listings.length} vacant nearby</p>
           </div>
           <div className="flex gap-2">
-            <button aria-label="Layers" className="press flex h-9 w-9 items-center justify-center rounded-xl bg-card shadow-soft">
+            <button
+              aria-label="Toggle map style"
+              onClick={() => setTileStyle((s) => (s === "standard" ? "light" : "standard"))}
+              className="press flex h-9 w-9 items-center justify-center rounded-xl bg-card shadow-soft"
+            >
               <Layers className="h-4 w-4" />
             </button>
             <button
@@ -105,30 +114,52 @@ function MapPage() {
             <div className="animate-fade-up pointer-events-auto mx-auto max-w-[420px] rounded-3xl bg-card p-4 shadow-pop">
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
               <div className="flex gap-3">
-                <img src={selected.image} alt={selected.title} className="h-24 w-24 rounded-2xl object-cover" />
+                <img
+                  src={selected.image}
+                  alt={selected.title}
+                  className="h-24 w-24 rounded-2xl object-cover"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="truncate text-sm font-semibold">{selected.title}</h3>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta[selected.status].className}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta[selected.status].className}`}
+                    >
                       {statusMeta[selected.status].label}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">{selected.neighborhood}</p>
                   <p className="mt-1 text-base font-semibold tracking-tight">
-                    {formatKes(selected.rent)}<span className="text-xs font-medium text-muted-foreground"> /mo</span>
+                    {formatKes(selected.rent)}
+                    <span className="text-xs font-medium text-muted-foreground"> /mo</span>
                   </p>
                   <div className="mt-2 flex gap-2">
                     <Link
-                      to="/listing/$id" params={{ id: selected.id }}
+                      to="/listing/$id"
+                      params={{ id: selected.id }}
                       className="press flex-1 rounded-xl bg-primary py-2 text-center text-xs font-semibold text-primary-foreground"
                     >
                       View
                     </Link>
-                    <button className="press flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
+                    <button
+                      onClick={() =>
+                        window.open(
+                          `https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}&travelmode=driving`,
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
+                      aria-label="Get directions"
+                      className="press flex h-8 w-8 items-center justify-center rounded-xl bg-muted"
+                    >
                       <NavIcon className="h-4 w-4" />
                     </button>
-                    <button className="press flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
-                      <ChevronUp className="h-4 w-4" />
+                    <button
+                      onClick={() => setSelected(null)}
+                      aria-label="Dismiss"
+                      className="press flex h-8 w-8 items-center justify-center rounded-xl bg-muted"
+                    >
+                      <ChevronDown className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

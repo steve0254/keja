@@ -1,9 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin, BadgeCheck } from "lucide-react";
 import { formatKes, statusMeta, type Listing } from "@/lib/listings";
+import { useSavedListings } from "@/hooks/use-saved-listings";
 
-export function ListingCard({ listing, variant = "default" }: { listing: Listing; variant?: "default" | "wide" }) {
+export function ListingCard({
+  listing,
+  variant = "default",
+}: {
+  listing: Listing;
+  variant?: "default" | "wide";
+}) {
   const meta = statusMeta[listing.status];
+  const { isSaved, toggle } = useSavedListings();
+  const saved = isSaved(listing.id);
   return (
     <Link
       to="/listing/$id"
@@ -20,18 +29,25 @@ export function ListingCard({ listing, variant = "default" }: { listing: Listing
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
         <div className="absolute left-3 top-3 flex items-center gap-1.5">
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur ${meta.className}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClassName} ${listing.status === "available" ? "animate-live-dot" : ""}`} />
+          <span
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur ${meta.className}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${meta.dotClassName} ${listing.status === "available" ? "animate-live-dot" : ""}`}
+            />
             {meta.label}
           </span>
         </div>
         <button
           type="button"
-          aria-label="Save"
-          onClick={(e) => { e.preventDefault(); }}
+          aria-label={saved ? "Remove from saved" : "Save"}
+          onClick={(e) => {
+            e.preventDefault();
+            toggle(listing.id);
+          }}
           className="press absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 backdrop-blur"
         >
-          <Heart className="h-4 w-4 text-foreground" />
+          <Heart className={`h-4 w-4 ${saved ? "fill-primary text-primary" : "text-foreground"}`} />
         </button>
       </div>
       <div className="space-y-2 p-4">

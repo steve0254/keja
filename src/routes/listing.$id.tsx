@@ -1,13 +1,31 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  ArrowLeft, Share2, Heart, BadgeCheck, MapPin, Star, Wifi, Droplet, Car, Sofa, PawPrint,
-  Home as HomeIcon, ShieldCheck, MessageCircle, X, CalendarDays,
+  ArrowLeft,
+  Share2,
+  Heart,
+  BadgeCheck,
+  MapPin,
+  Star,
+  Wifi,
+  Droplet,
+  Car,
+  Sofa,
+  PawPrint,
+  Home as HomeIcon,
+  ShieldCheck,
+  MessageCircle,
+  X,
+  CalendarDays,
+  Navigation,
+  Compass,
+  Copy,
 } from "lucide-react";
 import { statusMeta, formatKes } from "@/lib/listings";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useListing } from "@/hooks/use-listings";
 import { useAuth } from "@/hooks/use-auth";
+import { useSavedListings } from "@/hooks/use-saved-listings";
 import { startConversation } from "@/hooks/use-messaging";
 import { useRequestViewing } from "@/hooks/use-viewings";
 import { toast } from "sonner";
@@ -18,8 +36,12 @@ export const Route = createFileRoute("/listing/$id")({
 });
 
 const amenityIcons: Record<string, typeof Wifi> = {
-  "Wi-Fi": Wifi, "Water": Droplet, "Parking": Car, "Furnished": Sofa,
-  "Pets": PawPrint, "Own compound": HomeIcon,
+  "Wi-Fi": Wifi,
+  Water: Droplet,
+  Parking: Car,
+  Furnished: Sofa,
+  Pets: PawPrint,
+  "Own compound": HomeIcon,
 };
 
 function ListingDetail() {
@@ -33,6 +55,7 @@ function ListingDetail() {
   const [bookDate, setBookDate] = useState("");
   const [bookTime, setBookTime] = useState("14:00");
   const [bookNote, setBookNote] = useState("");
+  const { isSaved, toggle } = useSavedListings();
   const [starting, setStarting] = useState(false);
 
   if (isLoading) {
@@ -43,13 +66,67 @@ function ListingDetail() {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-sm text-muted-foreground">Listing unavailable</p>
-          <Link to="/" className="mt-3 inline-block text-sm font-medium text-primary">Back to home</Link>
+          <Link to="/" className="mt-3 inline-block text-sm font-medium text-primary">
+            Back to home
+          </Link>
         </div>
       </div>
     );
   }
   const meta = statusMeta[listing.status];
   const isOwner = user?.id && listing.owner_id === user.id;
+  const saved = isSaved(listing.id);
+  const hasCoords = Boolean(listing.lat && listing.lng);
+  const mapsUrl = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${listing.lat},${listing.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.title}, ${listing.neighborhood}, Nairobi`)}`;
+  const directionsUrl = hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${listing.lat},${listing.lng}&travelmode=driving`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${listing.title}, ${listing.neighborhood}, Nairobi`)}`;
+
+  async function handleShare() {
+    const shareData = {
+      title: listing!.title,
+      text: `${listing!.title} — ${formatKes(listing!.rent)}/mo in ${listing!.neighborhood}`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the share sheet — not an error.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy the link");
+    }
+  }
+
+  function handleShareLocation() {
+    if (navigator.share) {
+      navigator.share({ title: listing!.title, url: mapsUrl }).catch(() => {});
+      return;
+    }
+    navigator.clipboard
+      .writeText(mapsUrl)
+      .then(() => toast.success("Location link copied"))
+      .catch(() => toast.error("Couldn't copy the location link"));
+  }
+
+  function handleCopyCoordinates() {
+    if (!hasCoords) {
+      toast.error("No exact coordinates saved for this listing yet");
+      return;
+    }
+    navigator.clipboard
+      .writeText(`${listing!.lat}, ${listing!.lng}`)
+      .then(() => toast.success("Coordinates copied"))
+      .catch(() => toast.error("Couldn't copy coordinates"));
+  }
 
   async function handleMessage() {
     if (!isAuthenticated || !user) return navigate({ to: "/auth" });
@@ -102,28 +179,52 @@ function ListingDetail() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-[440px] bg-background pb-32">
       <div className="relative h-[52svh] overflow-hidden">
-        <img src={listing.gallery[idx]} alt={listing.title} className="animate-fade h-full w-full object-cover" key={idx} />
+        <img
+          src={listing.gallery[idx]}
+          alt={listing.title}
+          className="animate-fade h-full w-full object-cover"
+          key={idx}
+        />
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-6">
-          <Link to="/" className="press glass flex h-11 w-11 items-center justify-center rounded-2xl">
+          <Link
+            to="/"
+            className="press glass flex h-11 w-11 items-center justify-center rounded-2xl"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex gap-2">
-            <button className="press glass flex h-11 w-11 items-center justify-center rounded-2xl"><Share2 className="h-5 w-5" /></button>
-            <button className="press glass flex h-11 w-11 items-center justify-center rounded-2xl"><Heart className="h-5 w-5" /></button>
+            <button
+              onClick={handleShare}
+              className="press glass flex h-11 w-11 items-center justify-center rounded-2xl"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => toggle(listing.id)}
+              aria-label={saved ? "Remove from saved" : "Save"}
+              className="press glass flex h-11 w-11 items-center justify-center rounded-2xl"
+            >
+              <Heart className={`h-5 w-5 ${saved ? "fill-primary text-primary" : ""}`} />
+            </button>
           </div>
         </div>
         <div className="absolute bottom-6 left-4">
-          <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur ${meta.className}`}>
+          <span
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur ${meta.className}`}
+          >
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClassName} animate-live-dot`} />
             {meta.label} now
           </span>
         </div>
         <div className="absolute bottom-6 right-4 flex gap-1.5">
           {listing.gallery.map((_, i) => (
-            <button key={i} onClick={() => setIdx(i)}
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
               className={`h-1.5 rounded-full transition-all ${i === idx ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
-              aria-label={`Photo ${i + 1}`} />
+              aria-label={`Photo ${i + 1}`}
+            />
           ))}
         </div>
       </div>
@@ -133,7 +234,8 @@ function ListingDetail() {
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight">{listing.title}</h1>
             <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> {listing.neighborhood}{listing.address ? ` · ${listing.address}` : ""}
+              <MapPin className="h-3.5 w-3.5" /> {listing.neighborhood}
+              {listing.address ? ` · ${listing.address}` : ""}
             </p>
           </div>
           {listing.verified && (
@@ -159,7 +261,9 @@ function ListingDetail() {
         {listing.description && (
           <section className="mt-8">
             <h2 className="text-base font-semibold tracking-tight">About this home</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{listing.description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {listing.description}
+            </p>
           </section>
         )}
 
@@ -170,7 +274,10 @@ function ListingDetail() {
               {listing.amenities.map((a) => {
                 const Icon = amenityIcons[a] ?? HomeIcon;
                 return (
-                  <div key={a} className="flex items-center gap-2 rounded-2xl bg-card p-3 shadow-soft">
+                  <div
+                    key={a}
+                    className="flex items-center gap-2 rounded-2xl bg-card p-3 shadow-soft"
+                  >
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
                       <Icon className="h-4 w-4" />
                     </span>
@@ -211,7 +318,8 @@ function ListingDetail() {
             <div className="flex-1">
               <p className="text-sm font-semibold">{listing.caretaker.name}</p>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Star className="h-3 w-3 fill-viewing text-viewing" /> {listing.caretaker.rating} · Responds in minutes
+                <Star className="h-3 w-3 fill-viewing text-viewing" /> {listing.caretaker.rating} ·
+                Responds in minutes
               </p>
             </div>
             <button
@@ -220,6 +328,54 @@ function ListingDetail() {
               className="press flex items-center gap-1 rounded-2xl border border-border px-3 py-2 text-xs font-semibold disabled:opacity-50"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Message
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-base font-semibold tracking-tight">Location</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press flex items-center gap-2 rounded-2xl bg-primary p-3 text-primary-foreground shadow-soft"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15">
+                <Navigation className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-semibold">Get directions</span>
+            </a>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press flex items-center gap-2 rounded-2xl bg-card p-3 shadow-soft"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium">Open in Google Maps</span>
+            </a>
+            <button
+              type="button"
+              onClick={handleShareLocation}
+              className="press flex items-center gap-2 rounded-2xl bg-card p-3 shadow-soft"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
+                <Compass className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium">Share location</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyCoordinates}
+              className="press flex items-center gap-2 rounded-2xl bg-card p-3 shadow-soft"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted">
+                <Copy className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium">Copy coordinates</span>
             </button>
           </div>
         </section>
@@ -235,7 +391,8 @@ function ListingDetail() {
           <div>
             <p className="text-xs text-muted-foreground">Rent</p>
             <p className="text-lg font-semibold tracking-tight">
-              {formatKes(listing.rent)}<span className="text-xs font-medium text-muted-foreground">/mo</span>
+              {formatKes(listing.rent)}
+              <span className="text-xs font-medium text-muted-foreground">/mo</span>
             </p>
           </div>
           <button
@@ -248,14 +405,20 @@ function ListingDetail() {
       </div>
 
       {showBook && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm" onClick={() => setShowBook(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowBook(false)}
+        >
           <div
             className="animate-fade-up mx-auto w-full max-w-[440px] rounded-t-[32px] bg-background p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold tracking-tight">Book a viewing</h3>
-              <button onClick={() => setShowBook(false)} className="press flex h-9 w-9 items-center justify-center rounded-2xl bg-card shadow-soft">
+              <button
+                onClick={() => setShowBook(false)}
+                className="press flex h-9 w-9 items-center justify-center rounded-2xl bg-card shadow-soft"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -263,7 +426,9 @@ function ListingDetail() {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Date</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Date
+                </span>
                 <div className="relative mt-1">
                   <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -276,7 +441,9 @@ function ListingDetail() {
                 </div>
               </label>
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Time</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Time
+                </span>
                 <input
                   type="time"
                   value={bookTime}
@@ -286,7 +453,9 @@ function ListingDetail() {
               </label>
             </div>
             <label className="mt-3 block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Note (optional)</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Note (optional)
+              </span>
               <textarea
                 value={bookNote}
                 onChange={(e) => setBookNote(e.target.value)}

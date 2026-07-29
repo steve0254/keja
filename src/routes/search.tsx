@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Search as SearchIcon, X, Wifi, Droplet, Car, PawPrint, Sofa, Home as HomeIcon } from "lucide-react";
+import {
+  Search as SearchIcon,
+  X,
+  Wifi,
+  Droplet,
+  Car,
+  PawPrint,
+  Sofa,
+  Home as HomeIcon,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ListingCard } from "@/components/ListingCard";
 import { AiSearchChat } from "@/components/AiSearchChat";
@@ -10,6 +19,9 @@ import { useListings } from "@/hooks/use-listings";
 
 export const Route = createFileRoute("/search")({
   head: () => ({ meta: [{ title: "Search — Keja" }] }),
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   component: SearchPage,
 });
 
@@ -24,7 +36,8 @@ const amenities = [
 ];
 
 function SearchPage() {
-  const [q, setQ] = useState("");
+  const { q: initialQ } = Route.useSearch();
+  const [q, setQ] = useState(initialQ ?? "");
   const [budget, setBudget] = useState(500000);
   const [bed, setBed] = useState("Any");
   const [active, setActive] = useState<string[]>([]);
@@ -46,7 +59,10 @@ function SearchPage() {
     <AppShell>
       <header className="glass sticky top-0 z-20 px-5 pb-4 pt-6">
         <div className="flex items-center gap-2">
-          <Link to="/" className="press flex h-10 w-10 items-center justify-center rounded-2xl bg-card shadow-soft">
+          <Link
+            to="/"
+            className="press flex h-10 w-10 items-center justify-center rounded-2xl bg-card shadow-soft"
+          >
             <X className="h-4 w-4" />
           </Link>
           <div className="relative flex-1">
@@ -66,24 +82,35 @@ function SearchPage() {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Budget</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Budget
+            </label>
             <span className="text-sm font-semibold">Up to {formatKes(budget)}</span>
           </div>
           <input
-            type="range" min={2000} max={500000} step={1000} value={budget}
+            type="range"
+            min={2000}
+            max={500000}
+            step={1000}
+            value={budget}
             onChange={(e) => setBudget(Number(e.target.value))}
             className="w-full accent-[oklch(0.599_0.174_142.1)]"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">Bedrooms</label>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Bedrooms
+          </label>
           <div className="flex gap-2">
             {beds.map((b) => (
               <button
-                key={b} onClick={() => setBed(b)}
+                key={b}
+                onClick={() => setBed(b)}
                 className={`press flex-1 rounded-2xl border py-2.5 text-sm font-medium ${
-                  bed === b ? "border-transparent bg-foreground text-background" : "border-border bg-card"
+                  bed === b
+                    ? "border-transparent bg-foreground text-background"
+                    : "border-border bg-card"
                 }`}
               >
                 {b}
@@ -93,16 +120,24 @@ function SearchPage() {
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">Must have</label>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Must have
+          </label>
           <div className="flex flex-wrap gap-2">
             {amenities.map(({ label, icon: Icon }) => {
               const isOn = active.includes(label);
               return (
                 <button
                   key={label}
-                  onClick={() => setActive((a) => (a.includes(label) ? a.filter((x) => x !== label) : [...a, label]))}
+                  onClick={() =>
+                    setActive((a) =>
+                      a.includes(label) ? a.filter((x) => x !== label) : [...a, label],
+                    )
+                  }
                   className={`press flex items-center gap-2 rounded-2xl border px-3.5 py-2 text-sm font-medium transition ${
-                    isOn ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-card text-foreground"
+                    isOn
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border bg-card text-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4" /> {label}

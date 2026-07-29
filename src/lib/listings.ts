@@ -34,12 +34,14 @@ const fallbackImages = [p1, p2, p3, p4];
 
 function initials(name: string | null | undefined) {
   if (!name) return "NA";
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("") || "NA";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("") || "NA"
+  );
 }
 
 function timeAgo(iso: string) {
@@ -78,7 +80,10 @@ export type DbListing = {
 };
 
 export function adaptListing(row: DbListing, idx = 0): Listing {
-  const gallery = row.images && row.images.length > 0 ? row.images : [fallbackImages[idx % fallbackImages.length]];
+  const gallery =
+    row.images && row.images.length > 0
+      ? row.images
+      : [fallbackImages[idx % fallbackImages.length]];
   return {
     id: row.id,
     owner_id: row.owner_id,
@@ -111,20 +116,55 @@ export function adaptListing(row: DbListing, idx = 0): Listing {
   };
 }
 
-export const chipTypes = ["All", "Single Room", "Double Room", "Bedsitter", "Studio", "1 Bed", "2 Bed", "Maisonette", "Shop", "Own compound"];
-export const trendingHoods = [
-  { name: "Kilimani", count: 128 },
-  { name: "Riverside", count: 74 },
-  { name: "Lavington", count: 56 },
-  { name: "Westlands", count: 92 },
-  { name: "Ngong Road", count: 41 },
+// Must match the `listing_type` enum in the database exactly, or filtering
+// by these chips will silently match nothing.
+export const chipTypes = [
+  "All",
+  "Studio",
+  "Bedsitter",
+  "One Bedroom",
+  "Two Bedroom",
+  "Three Bedroom",
+  "Maisonette",
+  "Townhouse",
 ];
 
-export const statusMeta: Record<Status, { label: string; className: string; dotClassName: string }> = {
-  available: { label: "Available", className: "bg-available/10 text-available", dotClassName: "bg-available" },
-  viewing:   { label: "Viewing",   className: "bg-viewing/15 text-viewing",     dotClassName: "bg-viewing" },
-  reserved:  { label: "Reserved",  className: "bg-reserved/10 text-reserved",   dotClassName: "bg-reserved" },
-  occupied:  { label: "Occupied",  className: "bg-muted text-muted-foreground", dotClassName: "bg-occupied" },
+export function computeTrendingNeighborhoods(listings: Listing[], limit = 4) {
+  const counts = new Map<string, number>();
+  for (const l of listings) {
+    if (!l.neighborhood) continue;
+    counts.set(l.neighborhood, (counts.get(l.neighborhood) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name, count]) => ({ name, count }));
+}
+
+export const statusMeta: Record<
+  Status,
+  { label: string; className: string; dotClassName: string }
+> = {
+  available: {
+    label: "Available",
+    className: "bg-available/10 text-available",
+    dotClassName: "bg-available",
+  },
+  viewing: {
+    label: "Viewing",
+    className: "bg-viewing/15 text-viewing",
+    dotClassName: "bg-viewing",
+  },
+  reserved: {
+    label: "Reserved",
+    className: "bg-reserved/10 text-reserved",
+    dotClassName: "bg-reserved",
+  },
+  occupied: {
+    label: "Occupied",
+    className: "bg-muted text-muted-foreground",
+    dotClassName: "bg-occupied",
+  },
 };
 
 export function formatKes(n: number) {

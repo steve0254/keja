@@ -24,7 +24,7 @@ const residentialTypes = [
 ] as const;
 const commercialTypes = ["Shop", "Warehouse", "Commercial Space"] as const;
 const houseTypes = [...residentialTypes, ...commercialTypes, "Other"] as const;
-const amenityOptions = ["Wi-Fi", "Water", "Parking", "Furnished", "Pets", "Own compound"];
+const amenityOptions = ["Wi-Fi", "Water", "Parking", "Furnished", "Pets", "Own compound", "Pool"];
 const MAX_PHOTOS = 8;
 
 function AddVacancy() {
@@ -38,8 +38,13 @@ function AddVacancy() {
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
   const [bedrooms, setBedrooms] = useState(0);
-  const [bathrooms, setBathrooms] = useState(1);
+  const [fullBathrooms, setFullBathrooms] = useState(1);
+  const [halfBathrooms, setHalfBathrooms] = useState(0);
+  const [squareFootage, setSquareFootage] = useState("");
+  const [roomLayout, setRoomLayout] = useState("");
+  const [furnishingDetails, setFurnishingDetails] = useState("");
   const [description, setDescription] = useState("");
+  const bathrooms = fullBathrooms + halfBathrooms;
   const [amenities, setAmenities] = useState<string[]>(["Water"]);
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -157,6 +162,11 @@ function AddVacancy() {
         deposit: Number(deposit || rent),
         bedrooms,
         bathrooms,
+        full_bathrooms: fullBathrooms,
+        half_bathrooms: halfBathrooms,
+        square_footage: squareFootage ? Number(squareFootage) : null,
+        room_layout: roomLayout || null,
+        furnishing_details: furnishingDetails || null,
         description: description || null,
         amenities,
         images: imageUrls,
@@ -371,17 +381,57 @@ function AddVacancy() {
               </label>
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Bathrooms
+                  Size (sqft)
                 </span>
                 <input
                   type="number"
-                  min={1}
-                  value={bathrooms}
-                  onChange={(e) => setBathrooms(Number(e.target.value))}
+                  min={0}
+                  value={squareFootage}
+                  onChange={(e) => setSquareFootage(e.target.value)}
+                  placeholder="Optional"
                   className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-base font-semibold"
                 />
               </label>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Full bathrooms
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  value={fullBathrooms}
+                  onChange={(e) => setFullBathrooms(Number(e.target.value))}
+                  className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-base font-semibold"
+                />
+                <span className="mt-1 block text-[11px] text-muted-foreground">Bath + toilet</span>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Half bathrooms
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  value={halfBathrooms}
+                  onChange={(e) => setHalfBathrooms(Number(e.target.value))}
+                  className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-base font-semibold"
+                />
+                <span className="mt-1 block text-[11px] text-muted-foreground">Toilet only</span>
+              </label>
+            </div>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Layout (optional)
+              </span>
+              <input
+                value={roomLayout}
+                onChange={(e) => setRoomLayout(e.target.value)}
+                placeholder="e.g. Open-plan living/kitchen, bedroom off the hallway"
+                className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-sm"
+              />
+            </label>
           </div>
         )}
 
@@ -521,6 +571,22 @@ function AddVacancy() {
                 })}
               </div>
             </div>
+
+            {amenities.includes("Furnished") && (
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  What's included (furnished)
+                </span>
+                <textarea
+                  value={furnishingDetails}
+                  onChange={(e) => setFurnishingDetails(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. Bed, wardrobe, sofa, fridge, cooker — be specific so tenants know what to expect"
+                  className="mt-2 w-full rounded-2xl border border-border bg-card p-3 text-sm"
+                />
+              </label>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <input
                 value={caretakerName}

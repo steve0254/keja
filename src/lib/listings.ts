@@ -28,6 +28,11 @@ export type Listing = {
   owner_id?: string;
   description?: string | null;
   address?: string | null;
+  fullBathrooms?: number | null;
+  halfBathrooms?: number | null;
+  squareFootage?: number | null;
+  roomLayout?: string | null;
+  furnishingDetails?: string | null;
 };
 
 const fallbackImages = [p1, p2, p3, p4];
@@ -77,6 +82,11 @@ export type DbListing = {
   caretaker_name: string | null;
   caretaker_phone: string | null;
   created_at: string;
+  full_bathrooms?: number | null;
+  half_bathrooms?: number | null;
+  square_footage?: number | null;
+  room_layout?: string | null;
+  furnishing_details?: string | null;
 };
 
 export function adaptListing(row: DbListing, idx = 0): Listing {
@@ -96,6 +106,11 @@ export function adaptListing(row: DbListing, idx = 0): Listing {
     bathrooms: row.bathrooms,
     description: row.description,
     address: row.address,
+    fullBathrooms: row.full_bathrooms ?? null,
+    halfBathrooms: row.half_bathrooms ?? null,
+    squareFootage: row.square_footage ?? null,
+    roomLayout: row.room_layout ?? null,
+    furnishingDetails: row.furnishing_details ?? null,
     distanceKm: 0,
     walkMin: 0,
     listedAgo: timeAgo(row.created_at),

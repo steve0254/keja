@@ -60,6 +60,9 @@ export type Database = {
           created_at: string
           deposit: number
           description: string | null
+          full_bathrooms: number | null
+          furnishing_details: string | null
+          half_bathrooms: number | null
           id: string
           images: string[]
           lat: number | null
@@ -67,6 +70,8 @@ export type Database = {
           neighborhood: string
           owner_id: string
           rent: number
+          room_layout: string | null
+          square_footage: number | null
           status: Database["public"]["Enums"]["listing_status"]
           title: string
           type: Database["public"]["Enums"]["listing_type"]
@@ -83,6 +88,9 @@ export type Database = {
           created_at?: string
           deposit?: number
           description?: string | null
+          full_bathrooms?: number | null
+          furnishing_details?: string | null
+          half_bathrooms?: number | null
           id?: string
           images?: string[]
           lat?: number | null
@@ -90,6 +98,8 @@ export type Database = {
           neighborhood: string
           owner_id: string
           rent: number
+          room_layout?: string | null
+          square_footage?: number | null
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
           type?: Database["public"]["Enums"]["listing_type"]
@@ -106,6 +116,9 @@ export type Database = {
           created_at?: string
           deposit?: number
           description?: string | null
+          full_bathrooms?: number | null
+          furnishing_details?: string | null
+          half_bathrooms?: number | null
           id?: string
           images?: string[]
           lat?: number | null
@@ -113,6 +126,8 @@ export type Database = {
           neighborhood?: string
           owner_id?: string
           rent?: number
+          room_layout?: string | null
+          square_footage?: number | null
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
           type?: Database["public"]["Enums"]["listing_type"]
@@ -120,6 +135,74 @@ export type Database = {
           verified?: boolean
         }
         Relationships: []
+      }
+      schools: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          neighborhood: string
+          notes: string | null
+          school_type: string
+          student_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          neighborhood: string
+          notes?: string | null
+          school_type?: string
+          student_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          neighborhood?: string
+          notes?: string | null
+          school_type?: string
+          student_count?: number | null
+        }
+        Relationships: []
+      }
+      school_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          school_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          school_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          school_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_reviews_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {

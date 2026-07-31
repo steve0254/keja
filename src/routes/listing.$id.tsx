@@ -20,9 +20,11 @@ import {
   Navigation,
   Compass,
   Copy,
+  Waves,
 } from "lucide-react";
 import { statusMeta, formatKes } from "@/lib/listings";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { SchoolsSection } from "@/components/SchoolsSection";
 import { useListing } from "@/hooks/use-listings";
 import { useAuth } from "@/hooks/use-auth";
 import { useSavedListings } from "@/hooks/use-saved-listings";
@@ -42,6 +44,7 @@ const amenityIcons: Record<string, typeof Wifi> = {
   Furnished: Sofa,
   Pets: PawPrint,
   "Own compound": HomeIcon,
+  Pool: Waves,
 };
 
 function ListingDetail() {
@@ -249,7 +252,16 @@ function ListingDetail() {
           {[
             { k: "Type", v: listing.type },
             { k: "Bedrooms", v: listing.bedrooms === 0 ? "Studio" : listing.bedrooms },
-            { k: "Bathrooms", v: listing.bathrooms },
+            {
+              k: "Bathrooms",
+              v:
+                listing.fullBathrooms != null
+                  ? `${listing.fullBathrooms} full${listing.halfBathrooms ? ` · ${listing.halfBathrooms} half` : ""}`
+                  : listing.bathrooms,
+            },
+            ...(listing.squareFootage
+              ? [{ k: "Size", v: `${listing.squareFootage.toLocaleString()} sqft` }]
+              : []),
           ].map((s) => (
             <div key={s.k} className="rounded-2xl bg-card p-3 text-center shadow-soft">
               <p className="text-sm font-semibold">{s.v}</p>
@@ -257,6 +269,24 @@ function ListingDetail() {
             </div>
           ))}
         </div>
+
+        {listing.roomLayout && (
+          <section className="mt-6 rounded-2xl bg-card p-3 shadow-soft">
+            <h2 className="text-sm font-semibold">Layout</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{listing.roomLayout}</p>
+          </section>
+        )}
+
+        {listing.furnishingDetails && (
+          <section className="mt-3 rounded-2xl bg-card p-3 shadow-soft">
+            <h2 className="text-sm font-semibold">
+              {listing.amenities.includes("Furnished")
+                ? "What's included when furnished"
+                : "Furnishing"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">{listing.furnishingDetails}</p>
+          </section>
+        )}
 
         {listing.description && (
           <section className="mt-8">
@@ -384,6 +414,8 @@ function ListingDetail() {
           <ShieldCheck className="h-4 w-4 text-primary" />
           <p className="text-xs text-foreground">GPS verified · Identity verified</p>
         </section>
+
+        <SchoolsSection neighborhood={listing.neighborhood} />
       </div>
 
       <div className="glass fixed bottom-0 left-1/2 z-40 w-full max-w-[440px] -translate-x-1/2 border-t border-border px-5 py-4">

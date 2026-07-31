@@ -9,6 +9,7 @@ import {
   PawPrint,
   Sofa,
   Home as HomeIcon,
+  Waves,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ListingCard } from "@/components/ListingCard";
@@ -33,6 +34,7 @@ const amenities = [
   { label: "Pets", icon: PawPrint },
   { label: "Furnished", icon: Sofa },
   { label: "Own compound", icon: HomeIcon },
+  { label: "Pool", icon: Waves },
 ];
 
 function SearchPage() {
